@@ -1,0 +1,48 @@
+name: Create Release
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get commit info
+        id: commit_info
+        run: |
+          echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "commit_message=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
+          echo "run_number=${{ github.run_number }}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.run_number }}
+          release_name: Release v${{ github.run_number }}
+          body: |
+            ## Release automatique du commit ${{ steps.commit_info.outputs.short_sha }}
+
+            **Changements:**
+            - Run #${{ github.run_number }}
+            - Commit: ${{ steps.commit_info.outputs.commit_message }}
+
+            **Détails:**
+            - Branch: ${{ github.ref_name }}
+            - Author: ${{ github.actor }}
+            - Workflow: ${{ github.workflow }}
+          draft: false
+          prerelease: false
